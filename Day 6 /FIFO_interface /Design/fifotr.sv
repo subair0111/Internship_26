@@ -1,25 +1,33 @@
-module tb;
-task add (
-input bit [3:0] a,
-input bit [3:0] b,
-output bit [4:0] y
+module fifo(input clk, rst, wr_en, rd_en,
+    input [7:0] data_in,
+    output reg [7:0] data_out,
+    output full, empty
 );
-y = a + b;
-endtask
-bit [3:0] a, b;
-bit [4:0] y;
-bit clk = 0;
-always #5 clk = ~clk;
-task stim_clk();
-@(posedge clk);
-a = $urandom();
-b = $urandom();
-add(a, b, y);
-$display("Time=%0t a=%0d b=%0d y=%0d", $time, a, b, y);
-endtask
-initial begin
-stim_clk();
-repeat (10) @(posedge clk);
-$finish();
-end
+    
+    reg [7:0] mem [7:0]; 
+    reg [2:0] wr_ptr = 0;
+    reg [2:0] rd_ptr = 0;
+
+    assign full = ((wr_ptr + 3'b001) == rd_ptr) ? 1'b1 : 1'b0;
+    assign empty = (wr_ptr == rd_ptr) ? 1'b1 : 1'b0;
+
+    always @(posedge clk) begin
+        if(rst) begin
+            wr_ptr <= 0;
+            rd_ptr <= 0;
+            data_out <= 0;
+          
+        end
+        else begin
+            if(wr_en == 1 && full == 0) begin
+                mem[wr_ptr] <= data_in;
+                wr_ptr <= wr_ptr + 3'b001;
+            end
+            
+            if(rd_en == 1 && empty == 0) begin
+                data_out <= mem[rd_ptr];
+                rd_ptr <= rd_ptr + 3'b001;
+            end
+        end
+    end 
 endmodule
